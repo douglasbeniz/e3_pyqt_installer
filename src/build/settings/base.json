@@ -1,0 +1,6 @@
+{
+    "app_name": "e3_pyqt_installer",
+    "author": "Douglasbeniz",
+    "main_module": "src/main/python/main.py",
+    "version": "0.0.0"
+}

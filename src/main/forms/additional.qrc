@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>../icons/e3_logo.png</file>
+        <file>../licenses/e3_license.txt</file>
+    </qresource>
+</RCC>
