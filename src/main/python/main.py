@@ -45,19 +45,19 @@ class e3InstallerWindow(QMainWindow):
         self.tabInstallSteps.setCurrentIndex(nextIndex)
 
         # Controls visibility
-        if nextIndex+1 == maxTabs:
-            #self.pushNext.setEnabled(False)
+        if nextIndex+1 == maxTabs:              # next tab is the last one
             self.pushNext.setEnabled(False)
-        else:
-            nextEnabled = self.agrementAccepted
-            self.pushNext.setEnabled(nextEnabled)
+        elif nextIndex == 3:                    # next tab is the modules one
+            self.pushNext.setEnabled(len(list(self.lstModules.selectedItems())) > 0)
+        else:                                   # all other tabs
+            self.pushNext.setEnabled(self.agrementAccepted)
 
         if nextIndex > 0:
             self.pushPrevious.setEnabled(True)
 
-        if nextIndex == 3:
-            print(self.requireVersion)
-            print(self.baseVersion)
+        # if nextIndex == 3:
+        #     print(self.requireVersion)
+        #     print(self.baseVersion)
 
         # process correspondent step
         self.processInstallationStep(nextIndex)
@@ -68,12 +68,17 @@ class e3InstallerWindow(QMainWindow):
 
         if (confirmed and newRepo and newRepo != self.defaultRepo):
             self.defaultRepo = str(newRepo)
+            # Clear license file
+            self.textLicense.setText('')
+            # Reset license acceptance
+            self.agrementAccepted = False
+            self.chkAgree.setCheckState(Qt.Unchecked)
             # Clear list of versions
             self.lstBase.clear()
             self.lstRequire.clear()
-            # Reset license acceptance
-            self.agrementAccepted = False
-            self.checkAgree.setCheckState(Qt.Unchecked)
+            # Clear selected modules
+            self.lstModules.clearSelection()
+            self.chkOnly.setCheckState(Qt.Unchecked)
             # force the user to re-start the process
             self.pushPreviousClicked(reset=True)
 
@@ -106,9 +111,10 @@ class e3InstallerWindow(QMainWindow):
         # ---------------------------------------------------------------------
         # connecting slots and form components
         self.tabInstallSteps.currentChanged.connect(self.updateSelectedTab)
-        self.checkAgree.stateChanged.connect(self.updateAgreementAcceptance)
+        self.chkAgree.stateChanged.connect(self.updateAgreementAcceptance)
         self.lstRequire.itemSelectionChanged.connect(self.updateRequireVersion)
         self.lstBase.itemSelectionChanged.connect(self.updateBaseVersion)
+        self.lstModules.itemSelectionChanged.connect(self.updateSelectedModules)
         # ---------------------------------------------------------------------
         # configuring envent filter for tab
         self.tabInstallSteps.tabBar().installEventFilter(self)
@@ -122,7 +128,7 @@ class e3InstallerWindow(QMainWindow):
     @pyqtSlot(int)
     def updateAgreementAcceptance(self, val):
         # 
-        self.agrementAccepted = self.checkAgree.isChecked()
+        self.agrementAccepted = self.chkAgree.isChecked()
         # print("license accepted: " + str(self.agrementAccepted))
         self.pushNext.setEnabled(self.agrementAccepted)
 
@@ -145,6 +151,14 @@ class e3InstallerWindow(QMainWindow):
             pass
 
 
+    @pyqtSlot()
+    def updateSelectedModules(self):
+        #
+        try:
+            self.pushNext.setEnabled(len(list(self.lstModules.selectedItems())) > 0)
+        except:
+           pass
+
     def eventFilter(self, object, event): 
         if object == self.tabInstallSteps.tabBar() and \
             ((event.type() in [QEvent.KeyPress, QEvent.KeyRelease] and event.key() in [Qt.LeftArrow, Qt.RightArrow, Qt.Key_Left, Qt.Key_Right, Qt.Key_Direction_L, Qt.Key_Direction_R]) or \
@@ -160,13 +174,14 @@ class e3InstallerWindow(QMainWindow):
             pass
         elif step == 1:     # license
             try:
-                returnedLicense = requests.get('%s//%s' % (self.defaultRepo,'raw/master/LICENSE'))
-                if (returnedLicense.status_code == 200):
-                    # if that was fine, show it
-                    self.textLicense.setText(str(returnedLicense.content.decode('utf-8')))
-                elif (returnedLicense.status_code == 404):
-                    self.textLicense.setText('')
-                    self.statusBar.showMessage('Error when trying to get license file...', 15000)
+                if (not self.textLicense.toPlainText()):
+                    returnedLicense = requests.get('%s//%s' % (self.defaultRepo,'raw/master/LICENSE'))
+                    if (returnedLicense.status_code == 200):
+                        # if that was fine, show it
+                        self.textLicense.setText(str(returnedLicense.content.decode('utf-8')))
+                    elif (returnedLicense.status_code == 404):
+                        self.textLicense.setText('')
+                        self.statusBar.showMessage('Error when trying to get license file...', 15000)
             except Exception as e:
                 raise e
         elif step == 2:     # versions

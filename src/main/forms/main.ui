@@ -251,7 +251,7 @@ p, li { white-space: pre-wrap; }
           <bool>true</bool>
          </property>
         </widget>
-        <widget class="QCheckBox" name="checkAgree">
+        <widget class="QCheckBox" name="chkAgree">
          <property name="geometry">
           <rect>
            <x>520</x>
@@ -269,6 +269,9 @@ p, li { white-space: pre-wrap; }
          <property name="text">
           <string>I agree</string>
          </property>
+         <property name="checked">
+          <bool>false</bool>
+         </property>
         </widget>
        </widget>
        <widget class="QWidget" name="tabVersions">
@@ -278,7 +281,7 @@ p, li { white-space: pre-wrap; }
         <attribute name="title">
          <string>Versions</string>
         </attribute>
-        <widget class="QGroupBox" name="grpReq">
+        <widget class="QGroupBox" name="grpRequire">
          <property name="geometry">
           <rect>
            <x>10</x>
@@ -355,6 +358,129 @@ p, li { white-space: pre-wrap; }
         <attribute name="title">
          <string>Modules</string>
         </attribute>
+        <widget class="QGroupBox" name="grpModules">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>10</y>
+           <width>594</width>
+           <height>271</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="title">
+          <string>EPICS Base</string>
+         </property>
+         <widget class="QListWidget" name="lstModules">
+          <property name="geometry">
+           <rect>
+            <x>10</x>
+            <y>30</y>
+            <width>574</width>
+            <height>181</height>
+           </rect>
+          </property>
+          <property name="font">
+           <font>
+            <weight>50</weight>
+            <bold>false</bold>
+           </font>
+          </property>
+          <property name="selectionMode">
+           <enum>QAbstractItemView::MultiSelection</enum>
+          </property>
+          <item>
+           <property name="text">
+            <string>Common Group</string>
+           </property>
+           <property name="checkState">
+            <enum>Unchecked</enum>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Timing Group</string>
+           </property>
+           <property name="checkState">
+            <enum>Unchecked</enum>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>EPICS V4 Group</string>
+           </property>
+           <property name="checkState">
+            <enum>Unchecked</enum>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>EtherCAT / Motion Group (requires BitBucket access)</string>
+           </property>
+           <property name="checkState">
+            <enum>Unchecked</enum>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>PSI Module Group</string>
+           </property>
+           <property name="checkState">
+            <enum>Unchecked</enum>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>IFC Module Group</string>
+           </property>
+           <property name="checkState">
+            <enum>Unchecked</enum>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>AreaDetector Group</string>
+           </property>
+           <property name="checkState">
+            <enum>Unchecked</enum>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>LLRF Group</string>
+           </property>
+           <property name="checkState">
+            <enum>Unchecked</enum>
+           </property>
+          </item>
+         </widget>
+         <widget class="QCheckBox" name="chkOnly">
+          <property name="geometry">
+           <rect>
+            <x>10</x>
+            <y>220</y>
+            <width>571</width>
+            <height>25</height>
+           </rect>
+          </property>
+          <property name="font">
+           <font>
+            <weight>50</weight>
+            <italic>true</italic>
+            <bold>false</bold>
+           </font>
+          </property>
+          <property name="text">
+           <string>Only (ignores dependent modules)</string>
+          </property>
+         </widget>
+        </widget>
        </widget>
        <widget class="QWidget" name="tabTarget">
         <property name="enabled">
