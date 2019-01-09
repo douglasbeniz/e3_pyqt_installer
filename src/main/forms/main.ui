@@ -85,7 +85,7 @@
   </property>
   <property name="windowIcon">
    <iconset>
-    <normaloff>../icons/e3_logo.png</normaloff>../icons/e3_logo.png</iconset>
+    <normaloff>../icons/e3_app.ico</normaloff>../icons/e3_app.ico</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QWidget" name="verticalLayoutWidget">
@@ -171,7 +171,7 @@
         <enum>QTabWidget::Rounded</enum>
        </property>
        <property name="currentIndex">
-        <number>1</number>
+        <number>0</number>
        </property>
        <property name="usesScrollButtons">
         <bool>false</bool>
@@ -244,7 +244,7 @@ p, li { white-space: pre-wrap; }
          </property>
          <property name="source">
           <url>
-           <string>https://github.com/douglasbeniz/e3/raw/master/LICENSE</string>
+           <string/>
           </url>
          </property>
          <property name="openExternalLinks">
@@ -270,16 +270,6 @@ p, li { white-space: pre-wrap; }
           <string>I agree</string>
          </property>
         </widget>
-        <widget class="QTextEdit" name="textEdit">
-         <property name="geometry">
-          <rect>
-           <x>20</x>
-           <y>0</y>
-           <width>581</width>
-           <height>261</height>
-          </rect>
-         </property>
-        </widget>
        </widget>
        <widget class="QWidget" name="tabVersions">
         <property name="enabled">
@@ -288,6 +278,75 @@ p, li { white-space: pre-wrap; }
         <attribute name="title">
          <string>Versions</string>
         </attribute>
+        <widget class="QGroupBox" name="grpReq">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>10</y>
+           <width>291</width>
+           <height>271</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="title">
+          <string>Require</string>
+         </property>
+         <widget class="QListWidget" name="lstRequire">
+          <property name="geometry">
+           <rect>
+            <x>10</x>
+            <y>30</y>
+            <width>271</width>
+            <height>231</height>
+           </rect>
+          </property>
+          <property name="layoutMode">
+           <enum>QListView::SinglePass</enum>
+          </property>
+          <property name="viewMode">
+           <enum>QListView::ListMode</enum>
+          </property>
+          <property name="selectionRectVisible">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </widget>
+        <widget class="QGroupBox" name="grpBase">
+         <property name="geometry">
+          <rect>
+           <x>314</x>
+           <y>10</y>
+           <width>291</width>
+           <height>271</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="title">
+          <string>EPICS Base</string>
+         </property>
+         <widget class="QListWidget" name="lstBase">
+          <property name="geometry">
+           <rect>
+            <x>10</x>
+            <y>30</y>
+            <width>271</width>
+            <height>231</height>
+           </rect>
+          </property>
+         </widget>
+        </widget>
        </widget>
        <widget class="QWidget" name="tabModules">
         <property name="enabled">
@@ -462,7 +521,14 @@ p, li { white-space: pre-wrap; }
    <addaction name="menuSettings"/>
    <addaction name="menuHelp"/>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QStatusBar" name="statusBar">
+   <property name="font">
+    <font>
+     <weight>75</weight>
+     <bold>true</bold>
+    </font>
+   </property>
+  </widget>
   <action name="actionRepo">
    <property name="text">
     <string>Default repository</string>
