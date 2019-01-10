@@ -1,7 +1,10 @@
 #from fbs_runtime.application_context import ApplicationContext
-from PyQt5.QtWidgets import QMainWindow, QApplication, QInputDialog, QLineEdit
+from PyQt5.QtWidgets import QMainWindow, QApplication, QInputDialog, QFileDialog, QLineEdit, QMessageBox
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, QEvent, Qt
 from PyQt5.uic import loadUi
+
+from enum import Enum
+from pathlib import Path
 
 import sys, os
 import requests
@@ -10,10 +13,24 @@ REQUIRE_ESS_REPO            = 'https://github.com/icshwi/require-ess/releases'
 REQUIRE_ESS_REPO_API_TAGS   = 'https://api.github.com/repos/icshwi/require-ess/tags'
 EPICS_BASE_REPO_API_TAGS    = 'https://api.github.com/repos/epics-base/epics-base/tags'
 
+
+class ModuleGroups(Enum):
+    CMNGRP = 0,
+    TMGGRP = 1,
+    EV4GRP = 2,
+    ECMGRP = 3,
+    PSIGRP = 4,
+    IFCGRP = 5,
+    ADRGRP = 6,
+    LRFGRP = 7
+
 class e3InstallerWindow(QMainWindow):
-    pushPreviousClicked = pyqtSignal()
-    pushNextClicked = pyqtSignal()
-    pushQuitClicked = pyqtSignal()
+    pushPreviousClicked     = pyqtSignal()
+    pushNextClicked         = pyqtSignal()
+    pushQuitClicked         = pyqtSignal()
+    pushLocalDirClicked     = pyqtSignal()
+    pushTargetDirClicked    = pyqtSignal()
+    pushInstallClicked      = pyqtSignal()
 
     def pushPreviousClicked(self, reset=False):
         if reset:
@@ -44,13 +61,17 @@ class e3InstallerWindow(QMainWindow):
         # Changing the visible tab
         self.tabInstallSteps.setCurrentIndex(nextIndex)
 
+        enableNextButton = False
         # Controls visibility
-        if nextIndex+1 == maxTabs:              # next tab is the last one
-            self.pushNext.setEnabled(False)
+        if nextIndex == 1:                    # next tab is the license one
+            enableNextButton = self.agrementAccepted
+        elif nextIndex == 2:                    # next tab is the versions one
+            enableNextButton = self.requireVersion is not None and self.baseVersion is not None
         elif nextIndex == 3:                    # next tab is the modules one
-            self.pushNext.setEnabled(len(list(self.lstModules.selectedItems())) > 0)
-        else:                                   # all other tabs
-            self.pushNext.setEnabled(self.agrementAccepted)
+            enableNextButton = len(list(self.lstModules.selectedItems())) > 0
+        elif nextIndex+1 == maxTabs:            # next tab is the last one
+            enableNextbutton = False
+        self.pushNext.setEnabled(enableNextButton)
 
         if nextIndex > 0:
             self.pushPrevious.setEnabled(True)
@@ -61,6 +82,28 @@ class e3InstallerWindow(QMainWindow):
 
         # process correspondent step
         self.processInstallationStep(nextIndex)
+
+
+    def pushLocalDirClicked(self):
+        localDir = QFileDialog.getExistingDirectory(self, "EPICS installation via e3", self.defaultLocalDir, QFileDialog.ShowDirsOnly)
+        if localDir:
+            self.defaultLocalDir = localDir
+            self.localDir = localDir + '/e3/'
+            self.targetDir = self.targetDir.replace('//', '/')
+            self.textLocalDir.setText(self.localDir)
+
+    def pushTargetDirClicked(self):
+        targetDir = QFileDialog.getExistingDirectory(self, "EPICS installation via e3", self.defaultTargetDir, QFileDialog.ShowDirsOnly)
+        if targetDir:
+            self.defaultTargetDir = targetDir
+            self.targetDir = targetDir + '/epics/'
+            self.targetDir = self.targetDir.replace('//', '/')
+            self.textTargetDir.setText(self.targetDir)
+
+
+    def pushInstallClicked(self):
+        self.textLog.append("Local directory: " + self.localDir)
+        self.textLog.append("Target directory: " + self.targetDir)
 
 
     def menuActionRepo(self):
@@ -76,9 +119,14 @@ class e3InstallerWindow(QMainWindow):
             # Clear list of versions
             self.lstBase.clear()
             self.lstRequire.clear()
+            self.baseVersion = None
+            self.requireVersion = None
             # Clear selected modules
             self.lstModules.clearSelection()
             self.chkOnly.setCheckState(Qt.Unchecked)
+            # Clear log history and configured directories
+            self.textLog.setText('')
+            self.initialDirPlaces()
             # force the user to re-start the process
             self.pushPreviousClicked(reset=True)
 
@@ -90,23 +138,44 @@ class e3InstallerWindow(QMainWindow):
         # object attributes
         # ---------------------------------------------------------------------
         # string
-        self.defaultRepo = "https://github.com/douglasbeniz/e3"
-        self.requireVersion = ''
-        self.baseVersion = ''
+        self.defaultRepo        = 'https://github.com/douglasbeniz/e3'
+        self.requireVersion     = None
+        self.baseVersion        = None
+        self.defaultLocalDir    = None
+        self.defaultTargetDir   = None
+        self.localDir           = None
+        self.targetDir          = None
         # ---------------------------------------------------------------------
         # integer/float
         # ---------------------------------------------------------------------
         # boolean
         self.agrementAccepted = False
+        # dictionaries
+        self.modulesDict = {
+            'Common Group':             ModuleGroups.CMNGRP,
+            'Timing Group':             ModuleGroups.TMGGRP,
+            'EPICS v4 Group':           ModuleGroups.EV4GRP,
+            'EtherCAT / Motion Group':  ModuleGroups.ECMGRP,
+            'PSI Module Group':         ModuleGroups.PSIGRP,
+            'IFC Module Group':         ModuleGroups.IFCGRP,
+            'Area Detector Group':      ModuleGroups.ADRGRP,
+            'LLRF Group':               ModuleGroups.LRFGRP }
+
         # ---------------------------------------------------------------------
         # loading the main form
+        # ---------------------------------------------------------------------
         loadUi(os.path.dirname(__file__) + '/../forms/main.ui', self)
 
+        # ---------------------------------------------------------------------
+        # from components to commands bindings
         # ---------------------------------------------------------------------
         # connecting signals and form components
         self.pushPrevious.clicked.connect(self.pushPreviousClicked)
         self.pushNext.clicked.connect(self.pushNextClicked)
         self.pushQuit.clicked.connect(self.close)
+        self.pushLocalDir.clicked.connect(self.pushLocalDirClicked)
+        self.pushTargetDir.clicked.connect(self.pushTargetDirClicked)
+        self.pushInstall.clicked.connect(self.pushInstallClicked)
         self.actionRepo.triggered.connect(self.menuActionRepo)
         # ---------------------------------------------------------------------
         # connecting slots and form components
@@ -155,9 +224,20 @@ class e3InstallerWindow(QMainWindow):
     def updateSelectedModules(self):
         #
         try:
-            self.pushNext.setEnabled(len(list(self.lstModules.selectedItems())) > 0)
+            curTab      = self.tabInstallSteps.currentIndex()+1
+            maxTabs     = self.tabInstallSteps.count()
+            selectCount = len(list(self.lstModules.selectedItems()))
+            self.pushNext.setEnabled((selectCount > 0) and (curTab != maxTabs))
         except:
            pass
+
+
+    def initialDirPlaces(self):
+        self.defaultLocalDir    = str(Path.home())
+        self.defaultTargetDir   = '/opt/'
+        self.localDir           = str(Path.home()) + '/e3/'
+        self.targetDir          = '/opt/epics/'
+
 
     def eventFilter(self, object, event): 
         if object == self.tabInstallSteps.tabBar() and \
@@ -219,7 +299,8 @@ class e3InstallerWindow(QMainWindow):
                         self.baseVersion = self.lstBase.item(0).text()
                     else:
                         errMessage = ('EPICS Base' if errMessage is None else errMessage + ' and EPICS-Base')
-
+                # Update availabity of next push button
+                self.pushNext.setEnabled(self.requireVersion is not None and self.baseVersion is not None)
 
                 if (errMessage):
                     self.statusBar.showMessage("Error when trying to get %s available versions..." % errMessage, 15000)
@@ -227,9 +308,36 @@ class e3InstallerWindow(QMainWindow):
             except Exception as e:
                 raise e
         elif step == 3:     # modules
-            pass
+            # filling the modules list
+            if (len(list(self.lstModules.selectedItems())) == 0):
+                self.lstModules.clear()
+                self.lstModules.addItems(list(self.modulesDict))
         elif step == 4:     # target
-            pass
+            moduleEnumList = []
+            for module in list(self.lstModules.selectedItems()):
+                moduleEnumList.append(self.modulesDict[module.text()])
+            if (ModuleGroups.CMNGRP not in moduleEnumList):
+                # need to warn user that COMMON modules are necessary to compile other modules
+                choice = QMessageBox.question(self,
+                    "EPICS installation via e3",
+                    "Common modules group was not selected and is necessary for many others.\n\nPlease, consider to included it if this is a new installation.\n\nWould you like to add it?",
+                    QMessageBox.Yes | QMessageBox.No)
+                if choice == QMessageBox.Yes:
+                    moduleEnumList.append(ModuleGroups.CMNGRP)
+                    # select the module at the list
+                    try:
+                        displayedCommonName = list(self.modulesDict.keys())[list(self.modulesDict.values()).index(ModuleGroups.CMNGRP)]
+                        allModulesList = [str(self.lstModules.item(idx).text()) for idx in range(self.lstModules.count())]
+                        self.lstModules.item(allModulesList.index(displayedCommonName)).setSelected(True)
+                    except:
+                        self.statusBar.showMessage("Error when trying to set common group at modules list...", 15000)
+            #print(moduleEnumList)
+
+            self.initialDirPlaces()
+
+            self.textLocalDir.setText(self.localDir)
+            self.textTargetDir.setText(self.targetDir)
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
