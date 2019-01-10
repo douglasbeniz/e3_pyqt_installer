@@ -1,19 +1,24 @@
 #from fbs_runtime.application_context import ApplicationContext
 from PyQt5.QtWidgets import QMainWindow, QApplication, QInputDialog, QFileDialog, QLineEdit, QMessageBox
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, QEvent, Qt
+from PyQt5.QtCore import pyqtSlot, pyqtSignal, QProcess, QEvent, Qt
 from PyQt5.uic import loadUi
 
 from enum import Enum
 from pathlib import Path
+from time import sleep
 
 import sys, os
 import requests
+import subprocess
 
 REQUIRE_ESS_REPO            = 'https://github.com/icshwi/require-ess/releases'
 REQUIRE_ESS_REPO_API_TAGS   = 'https://api.github.com/repos/icshwi/require-ess/tags'
 EPICS_BASE_REPO_API_TAGS    = 'https://api.github.com/repos/epics-base/epics-base/tags'
 
 
+"""
+Enumerator to handle module group types
+"""
 class ModuleGroups(Enum):
     CMNGRP = 0,
     TMGGRP = 1,
@@ -23,6 +28,7 @@ class ModuleGroups(Enum):
     IFCGRP = 5,
     ADRGRP = 6,
     LRFGRP = 7
+
 
 class e3InstallerWindow(QMainWindow):
     pushPreviousClicked     = pyqtSignal()
@@ -92,6 +98,7 @@ class e3InstallerWindow(QMainWindow):
             self.targetDir = self.targetDir.replace('//', '/')
             self.textLocalDir.setText(self.localDir)
 
+
     def pushTargetDirClicked(self):
         targetDir = QFileDialog.getExistingDirectory(self, "EPICS installation via e3", self.defaultTargetDir, QFileDialog.ShowDirsOnly)
         if targetDir:
@@ -101,9 +108,40 @@ class e3InstallerWindow(QMainWindow):
             self.textTargetDir.setText(self.targetDir)
 
 
+    """
+    * ---------------------------------------------------------------------------
+    * Since all the parameters were set, proceeds with installation
+    * ---------------------------------------------------------------------------
+    """
     def pushInstallClicked(self):
-        self.textLog.append("Local directory: " + self.localDir)
-        self.textLog.append("Target directory: " + self.targetDir)
+        # self.textLog.append("Local directory: " + self.localDir)
+        # self.textLog.append("Target directory: " + self.targetDir)
+        # -----------------------------------------------------------------------
+        cloneDir = ('%s/%s%s') % (self.localDir, 'e3-', self.baseVersion)
+        # cloning the e3 repo
+        self.textLog.append('---\nCloning the e3 repo...\n')
+        if not os.path.exists(self.localDir):
+            os.makedirs(self.localDir)
+        self.process.start('git', ['clone', self.defaultRepo, cloneDir])
+        # -----------------------------------------------------------------------
+        # configure the e3 environment settings
+        self.textLog.append('---\nConfigure the e3 environment settings...\n')
+        if not os.path.exists(self.targetDir):
+            os.makedirs(self.targetDir)
+        self.process.start(('%s/%s') % (cloneDir,'e3_building_config.bash'), ['-b %s' % self.baseVersion.replace('R',''), '-t %s' % self.targetDir, 'setup'])
+
+
+    def showProcessResults(self):
+        self.textLog.append(str(self.process.readAll(), 'utf-8'))
+
+
+    def disableInstallButton(self):
+        self.pushInstall.setEnabled(False)
+
+
+    def processFinished(self, exitCode, exitStatus):
+        self.textLog.append('\nThis step has been concluded with exitCode: %d\n---' % exitCode)
+        self.pushInstall.setEnabled(True)
 
 
     def menuActionRepo(self):
@@ -147,9 +185,11 @@ class e3InstallerWindow(QMainWindow):
         self.targetDir          = None
         # ---------------------------------------------------------------------
         # integer/float
+        pass
         # ---------------------------------------------------------------------
         # boolean
         self.agrementAccepted = False
+        # ---------------------------------------------------------------------
         # dictionaries
         self.modulesDict = {
             'Common Group':             ModuleGroups.CMNGRP,
@@ -160,6 +200,9 @@ class e3InstallerWindow(QMainWindow):
             'IFC Module Group':         ModuleGroups.IFCGRP,
             'Area Detector Group':      ModuleGroups.ADRGRP,
             'LLRF Group':               ModuleGroups.LRFGRP }
+        # ---------------------------------------------------------------------
+        # Qt types
+        self.process = QProcess(self)
 
         # ---------------------------------------------------------------------
         # loading the main form
@@ -177,6 +220,12 @@ class e3InstallerWindow(QMainWindow):
         self.pushTargetDir.clicked.connect(self.pushTargetDirClicked)
         self.pushInstall.clicked.connect(self.pushInstallClicked)
         self.actionRepo.triggered.connect(self.menuActionRepo)
+        #--
+        self.process.readyReadStandardOutput.connect(self.showProcessResults)
+        #self.process.readyRead.connect(self.showProcessResults)
+       # Disable the install button when process starts, and enable it when it finishes
+        self.process.started.connect(lambda: self.pushInstall.setEnabled(False))
+        self.process.finished.connect(self.processFinished)
         # ---------------------------------------------------------------------
         # connecting slots and form components
         self.tabInstallSteps.currentChanged.connect(self.updateSelectedTab)
@@ -186,7 +235,7 @@ class e3InstallerWindow(QMainWindow):
         self.lstModules.itemSelectionChanged.connect(self.updateSelectedModules)
         # ---------------------------------------------------------------------
         # configuring envent filter for tab
-        self.tabInstallSteps.tabBar().installEventFilter(self)
+        #self.tabInstallSteps.tabBar().installEventFilter(self)
 
 
     @pyqtSlot(int)
@@ -232,6 +281,7 @@ class e3InstallerWindow(QMainWindow):
            pass
 
 
+
     def initialDirPlaces(self):
         self.defaultLocalDir    = str(Path.home())
         self.defaultTargetDir   = '/opt/'
@@ -249,6 +299,12 @@ class e3InstallerWindow(QMainWindow):
         else:
             return super(e3InstallerWindow, self).eventFilter(object, event)
 
+
+    """
+    * ---------------------------------------------------------------------------
+    * Main procedures to perform operations of each installation stepa
+    * ---------------------------------------------------------------------------
+    """
     def processInstallationStep(self, step):
         if step == 0:       # main
             pass
