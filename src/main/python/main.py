@@ -242,7 +242,6 @@ class e3InstallerWindow(QMainWindow):
     def finishedRequire(self):
         # cloning the e3 repo
         self.textLog.append('---\nRequire installation step has been concluded with exitCode: %d' % self.processConfigSetup.exitCode())
-        self.pushInstall.setEnabled(True)
 
     def startedModules(self):
         # cloning the e3 repo
