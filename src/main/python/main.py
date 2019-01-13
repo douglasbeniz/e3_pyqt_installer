@@ -188,7 +188,10 @@ class e3InstallerWindow(QMainWindow):
                 logFile.close()
                 logFileTarget.write(self.textLog.toPlainText())
                 logFileTarget.close()
-
+            completedMessage = QMessageBox.information(self,
+                    "EPICS installation via e3",
+                    "All the installation procedures were concluded.\nTo activate EPICS environment type in a terminal:\n\n        $> source %s/tools/setenv" % cloneDir,
+                    QMessageBox.Ok)
         except:
             self.statusBar.showMessage('An exception occurred... ask for support!', 15000)
             self.pushInstall.setEnabled(True)
