@@ -148,18 +148,21 @@ class e3InstallerWindow(QMainWindow):
                 '-r%s' % self.requireVersion.replace('v',''),          # require version
                 '-y',                                                   # force to accept the cnofiguration as default (yes)
                 'setup']                                                # run the setup procedure
+            self.processConfigSetup.setWorkingDirectory(cloneDir)
             self.processConfigSetup.start(('%s/%s') % (cloneDir,'e3_building_config.bash'), configSetupParams)
             while not self.processConfigSetup.waitForFinished():
                 QThread.sleep(0.2)
             self.processConfigSetup.close()
             # -----------------------------------------------------------------------
             # EPICS base
+            self.processEpicsBase.setWorkingDirectory(cloneDir)
             self.processEpicsBase.start(('%s/%s') % (cloneDir,'e3.bash'), ['base'])
             while not self.processEpicsBase.waitForFinished():
                 QThread.sleep(0.2)
             self.processEpicsBase.close()
             # -----------------------------------------------------------------------
             # Require
+            self.processRequire.setWorkingDirectory(cloneDir)
             self.processRequire.start(('%s/%s') % (cloneDir,'e3.bash'), ['req'])
             while not self.processRequire.waitForFinished():
                 QThread.sleep(0.2)
@@ -169,6 +172,7 @@ class e3InstallerWindow(QMainWindow):
             #   e.g.:
             #       ./e3.bash -cta4 mod
             #       ./e3.bash -ctao mod
+            self.processModules.setWorkingDirectory(cloneDir)
             self.processModules.start(('%s/%s') % (cloneDir,'e3.bash'), [self.e3Modules, 'mod'])
             while not self.processModules.waitForFinished():
                 QThread.sleep(0.2)
@@ -178,9 +182,12 @@ class e3InstallerWindow(QMainWindow):
             # -----------------------------------------------------------------------
             self.statusBar.showMessage('Installation procedures concluded!', 15000)
             # saving all the log into a file
-            logFile = open(os.path.join(cloneDir, 'installation_log_%s.txt' % time.strftime('%d%h%Y-%Hh%Mm%Ss')), 'w')
-            logFile.write(self.textLog.toPlainText())
-            logFile.close()
+            with open(os.path.join(cloneDir, 'installation_log_%s.txt' % time.strftime('%d%h%Y-%Hh%Mm%Ss')), 'w') as logFile, \
+                open(os.path.join(self.targetDir, 'installation_log_%s.txt' % time.strftime('%d%h%Y-%Hh%Mm%Ss')), 'w') as logFileTarget:
+                logFile.write(self.textLog.toPlainText())
+                logFile.close()
+                logFileTarget.write(self.textLog.toPlainText())
+                logFileTarget.close()
 
         except:
             self.statusBar.showMessage('An exception occurred... ask for support!', 15000)
